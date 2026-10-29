@@ -4,7 +4,9 @@ import co.umariana.conexion.ConexionBD;
 import co.umariana.modelo.Estudiante;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -68,17 +70,36 @@ public class EstudianteDAO {
         }
     }
 
-    // =====================================================================
-    // ETAPA 2. Listar (SELECT)
-    // =====================================================================
+// =====================================================================
+// ETAPA 2. Listar (SELECT)
+// =====================================================================
 
-    /** @return todos los estudiantes ordenados por id; lista vacía si no hay o si hay un error */
-    public List<Estudiante> listar() {
-        // TODO Etapa 2: SELECT id, nombre, correo, semestre FROM estudiantes ORDER BY id
-        //               Use executeQuery() y recorra el ResultSet con while (rs.next()),
-        //               creando un Estudiante por cada fila y agregándolo a un ArrayList.
-        throw new UnsupportedOperationException("TODO: listar");
+/** @return todos los estudiantes ordenados por id; lista vacia si no hay o si hay un error */
+public List<Estudiante> listar() {
+    List<Estudiante> estudiantes = new ArrayList<>();
+    String sql = "SELECT id, nombre, correo, semestre FROM estudiantes ORDER BY id";
+
+    try (Connection con = ConexionBD.conectar();
+         PreparedStatement ps = con.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
+
+        while (rs.next()) {
+            Estudiante estudiante = new Estudiante(
+                rs.getInt("id"),
+                rs.getString("nombre"),
+                rs.getString("correo"),
+                rs.getInt("semestre")
+            );
+
+            estudiantes.add(estudiante);
+        }
+
+    } catch (SQLException e) {
+        System.out.println("Error al listar: " + e.getMessage());
     }
+
+    return estudiantes;
+}
 
     // =====================================================================
     // ETAPA 3. Buscar por id (SELECT ... WHERE)
@@ -86,11 +107,27 @@ public class EstudianteDAO {
 
     /** @return el estudiante con ese id, o null si no existe (o si hay un error) */
     public Estudiante buscarPorId(int id) {
-        // TODO Etapa 3: SELECT id, nombre, correo, semestre FROM estudiantes WHERE id = ?
-        throw new UnsupportedOperationException("TODO: buscarPorId");
+    String sql = "SELECT id, nombre, correo, semestre FROM estudiantes WHERE id = ?";
+    try (Connection con = ConexionBD.conectar();
+         PreparedStatement ps = con.prepareStatement(sql)) {
+        ps.setInt(1, id);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return new Estudiante(
+                    rs.getInt("id"),
+                    rs.getString("nombre"),
+                    rs.getString("correo"),
+                    rs.getInt("semestre")
+                );
+            }
+        }
+    } catch (SQLException e) {
+        System.out.println("Error al buscar por ID: " + e.getMessage());
     }
+    return null;
+}
 
-    // =====================================================================
+// =====================================================================
     // ETAPA 4. Actualizar (UPDATE)
     // =====================================================================
 
@@ -101,8 +138,22 @@ public class EstudianteDAO {
      *         (por ejemplo, correo ya usado por OTRO estudiante)
      */
     public boolean actualizar(Estudiante estudiante) {
-        // TODO Etapa 4: UPDATE estudiantes SET nombre = ?, correo = ?, semestre = ? WHERE id = ?
-        throw new UnsupportedOperationException("TODO: actualizar");
+        String sql = "UPDATE estudiantes SET nombre = ?, correo = ?, semestre = ? WHERE id = ?";
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setString(1, estudiante.getNombre());
+            ps.setString(2, estudiante.getCorreo());
+            ps.setInt(3, estudiante.getSemestre());
+            ps.setInt(4, estudiante.getId());
+            
+            // Retorna true si se afectó al menos una fila (es decir, el ID existía)
+            return ps.executeUpdate() > 0;
+            
+        } catch (SQLException e) {
+            System.out.println("Error al actualizar: " + e.getMessage());
+            return false;
+        }
     }
 
     // =====================================================================
@@ -111,7 +162,18 @@ public class EstudianteDAO {
 
     /** @return true si se eliminó; false si no existía ese id o si hubo un error */
     public boolean eliminar(int id) {
-        // TODO Etapa 5: DELETE FROM estudiantes WHERE id = ?
-        throw new UnsupportedOperationException("TODO: eliminar");
+        String sql = "DELETE FROM estudiantes WHERE id = ?";
+        try (Connection con = ConexionBD.conectar();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+            
+            ps.setInt(1, id);
+            
+            // Retorna true si se eliminó al menos un registro
+            return ps.executeUpdate() > 0;
+            
+        } catch (SQLException e) {
+            System.out.println("Error al eliminar: " + e.getMessage());
+            return false;
+        }
     }
 }
