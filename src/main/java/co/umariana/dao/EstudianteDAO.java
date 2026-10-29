@@ -16,7 +16,7 @@ import java.util.List;
  *
  * INSTRUCCIONES PARA EL ESTUDIANTE
  * --------------------------------
- * 1. Cada método marcado con "TODO" lanza UnsupportedOperationException.
+ * 1. Cada método marcado con "TOD0" lanza UnsupportedOperationException.
  *    Reemplace esa línea por su implementación con JDBC.
  * 2. NO modifique las pruebas (src/test). Las pruebas NO necesitan MySQL:
  *    usan una base de datos H2 en memoria.

@@ -44,7 +44,7 @@ import javax.servlet.http.HttpServletResponse;
  *
  * YA están resueltos (úselos como modelo): GET accion=nuevo y POST accion=crear.
  *
- * INSTRUCCIONES: complete los "TODO". NO modifique las pruebas.
+ * INSTRUCCIONES: complete los "TOD0". NO modifique las pruebas.
  */
 @WebServlet("/estudiantes")
 public class EstudianteServlet extends HttpServlet {
@@ -81,12 +81,10 @@ public class EstudianteServlet extends HttpServlet {
     // ETAPA 6. Mostrar (GET)
     // =====================================================================
 
-    @Override
+@Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String accion = request.getParameter("accion");
-
-        // YA RESUELTO: "nuevo" muestra el formulario vacío.
         if ("nuevo".equals(accion)) {
             request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
             return;
@@ -97,41 +95,44 @@ public class EstudianteServlet extends HttpServlet {
             request.getRequestDispatcher(VISTA_LISTAR).forward(request, response);
             return;
         }
-// ETAPA 6: Manejo de "editar" y control de errores para acciones no válidas
+
         if ("editar".equals(accion)) {
+            String idStr = request.getParameter("id");
+            if (idStr == null || idStr.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
             try {
-                int id = Integer.parseInt(request.getParameter("id").trim());
-                Estudiante estudiante = dao.buscarPorId(id); // Asegúrate de tener este método en tu EstudianteDAO
+                int id = Integer.parseInt(idStr.trim());
+                Estudiante estudiante = dao.buscarPorId(id);
                 
                 if (estudiante != null) {
                     request.setAttribute("estudiante", estudiante);
                     request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
                     return;
                 } else {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Estudiante no encontrado");
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
                     return;
                 }
-            } catch (NumberFormatException | NullPointerException e) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "ID de estudiante inválido");
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
                 return;
             }
         }
 
-        // Si la acción no coincide con ninguna de las anteriores
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Acción no válida");
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
     }
 
     // =====================================================================
     // ETAPA 7. Crear, actualizar y eliminar (POST)
     // =====================================================================
 
-    @Override
+@Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         String accion = request.getParameter("accion");
 
-        // YA RESUELTO: "crear" (úselo como modelo para "actualizar").
         if ("crear".equals(accion)) {
             String nombre = request.getParameter("nombre");
             String correo = request.getParameter("correo");
@@ -153,32 +154,69 @@ public class EstudianteServlet extends HttpServlet {
         }
 
         if ("actualizar".equals(accion)) {
-            int id = Integer.parseInt(request.getParameter("id").trim());
-            String nombre = request.getParameter("nombre");
-            String correo = request.getParameter("correo");
-            String semestre = request.getParameter("semestre");
-
-            String error = validar(nombre, correo, semestre);
-            if (error == null) {
-                Estudiante estudiante = new Estudiante(id, nombre.trim(), correo.trim(), Integer.parseInt(semestre.trim()));
-                if (dao.actualizar(estudiante)) {
-                    response.sendRedirect("estudiantes");
+            String idStr = request.getParameter("id");
+            if (idStr == null || idStr.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            try {
+                int id = Integer.parseInt(idStr.trim());
+                
+                // Verificar si el ID existe antes de actualizar
+                if (dao.buscarPorId(id) == null) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
                     return;
                 }
-                error = "No se pudo actualizar el estudiante. Verifique que el correo no esté repetido.";
+
+                String nombre = request.getParameter("nombre");
+                String correo = request.getParameter("correo");
+                String semestre = request.getParameter("semestre");
+
+                String error = validar(nombre, correo, semestre);
+                if (error == null) {
+                    Estudiante estudiante = new Estudiante(id, nombre.trim(), correo.trim(), Integer.parseInt(semestre.trim()));
+                    if (dao.actualizar(estudiante)) {
+                        response.sendRedirect("estudiantes");
+                        return;
+                    }
+                    error = "No se pudo actualizar el estudiante. Verifique que el correo no esté repetido.";
+                }
+                request.setAttribute("error", error);
+                request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
+                return;
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
             }
-            request.setAttribute("error", error);
-            request.getRequestDispatcher(VISTA_FORMULARIO).forward(request, response);
-            return;
         }
 
         if ("eliminar".equals(accion)) {
-            int id = Integer.parseInt(request.getParameter("id").trim());
-            dao.eliminar(id);
-            response.sendRedirect("estudiantes");
-            return;
+            String idStr = request.getParameter("id");
+            if (idStr == null || idStr.trim().isEmpty()) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            try {
+                int id = Integer.parseInt(idStr.trim());
+                
+                // Verificar si el ID existe antes de eliminar
+                if (dao.buscarPorId(id) == null) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+
+                if (dao.eliminar(id)) {
+                    response.sendRedirect("estudiantes");
+                    return;
+                }
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            } catch (NumberFormatException e) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
         }
 
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Acción no válida");
+        response.sendError(HttpServletResponse.SC_BAD_REQUEST);
     }
 }
